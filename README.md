@@ -1,97 +1,82 @@
-# Google Calendar Twilio Caller Alert System
+# Google Calendar & Twilio Call Alerts
 
-This is a premium, responsive **Next.js 15 (App Router)** application that integrates **Google OAuth**, **Google Calendar**, **MongoDB**, and **Twilio Voice API** to automatically trigger phone call alerts for upcoming calendar events 5 minutes before they begin.
+Hey! Welcome to the repository. This project is a Next.js 15 app designed to automatically call your phone 5 minutes before any Google Calendar meeting starts. It uses NextAuth for Google logins, MongoDB to store user configurations, and Twilio to trigger the voice calls.
 
----
-
-## 🚀 Key Features
-
-* **Google OAuth Integration**: Users log in securely with their Google accounts, allowing the app to read calendar events.
-* **Premium Glassmorphism UI**: High-fidelity dark mode interface with smooth animations, dynamic blur overlays, and fully responsive layouts.
-* **Strict Phone Validation**: Restricts input to exactly 10 digits, and includes a flexible country code selector.
-* **Instant Twilio Test Call**: Includes a diagnostic testing panel that allows users to trigger a phone call instantly to confirm credentials work.
-* **Alert Timeline Monitor**: 
-  * Displays upcoming scheduled events and called history items.
-  * Lists scroll independently and are constrained to show exactly 2 items maximum, ensuring a clean dashboard layout.
-* **Signout Confirmation Modal**: Displays an elegant confirmation prompt before ending the user session.
-* **Background Cron Service**: Includes a serverless cron route (`/api/cron`) that runs on a schedule to fetch calendars, compute offsets, call users, and flag called events in the database to prevent duplicate alerts.
+Here is a quick, human-friendly guide to get this running on your local machine and deploy it for free.
 
 ---
 
-## 🛠️ Tech Stack
+##  How to Set it Up Locally
 
-* **Framework**: Next.js 15 (App Router)
-* **Language**: TypeScript
-* **Database**: MongoDB (via Mongoose ORM)
-* **Auth**: NextAuth.js (Google Provider with offline access scopes)
-* **Communications**: Twilio SDK (Voice Calls)
-* **Styling**: Tailwind CSS & Vanilla CSS Transitions
-
----
-
-## 🔑 Environment Setup (`.env.local`)
-
-To run this application locally, create a `.env.local` file in the root directory and add the following keys:
-
-```env
-# Google OAuth Credentials
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# NextAuth Configuration
-NEXTAUTH_SECRET="your-nextauth-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
-
-# MongoDB Database Connection
-MONGODB_URI="your-mongodb-connection-string"
-
-# Twilio Communication Credentials
-TWILIO_ACCOUNT_SID="your-twilio-account-sid"
-TWILIO_AUTH_TOKEN="your-twilio-auth-token"
-TWILIO_PHONE_NUMBER="your-twilio-assigned-phone-number"
-```
-
----
-
-## ⚙️ Installation & Running
-
-### 1. Install Dependencies
-Make sure you have Node.js (v18+) installed. Run the following command in the project directory:
+### 1. Grab the Dependencies
+First, make sure you've got Node.js installed (v18+ works perfectly). Go ahead and install everything:
 ```bash
 npm install
 ```
 
-### 2. Run the Development Server
+### 2. Set Up Your Environment Variables (`.env.local`)
+Create a file named `.env.local` in the root of the project. Here's the template you need to fill out:
+
+```env
+# Google OAuth (Register a project in Google Cloud Console)
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+
+# NextAuth (Authentication setup)
+NEXTAUTH_SECRET="something_long_and_random"
+NEXTAUTH_URL="http://localhost:3000"
+
+# MongoDB (Mongoose connection string)
+MONGODB_URI="your_mongodb_connection_string"
+
+# Twilio (For initiating the calls)
+TWILIO_ACCOUNT_SID="your_twilio_sid"
+TWILIO_AUTH_TOKEN="your_twilio_auth_token"
+TWILIO_PHONE_NUMBER="your_twilio_phone_number"
+```
+
+> [!TIP]
+> **Quick Tips for getting keys:**
+> * **Google Cloud Console:** Create a new project, enable the **Google Calendar API**, configure the OAuth Consent Screen (add your email as a test user), and create "Web Application" client credentials. Set the redirect URI to `http://localhost:3000/api/auth/callback/google`.
+> * **MongoDB Atlas:** Set up a free shared cluster (M0) and copy the connection string. Make sure to whitelist IP `0.0.0.0/0` under Network Access so Vercel can connect later.
+> * **Twilio Trial:** Grab a free Twilio phone number. *Important Note:* Since it's a trial account, you have to verify your personal phone number under "Verified Caller IDs" in Twilio first, or the app won't be allowed to call you.
+
+### 3. Spin Up the Dev Server
+Start the local server with:
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your web browser.
-
-### 3. Verify Build for Production
-To test the production compilation, run:
-```bash
-npm run build
-```
+Open up [http://localhost:3000](http://localhost:3000) in your browser. You should see the sleek dashboard!
 
 ---
 
-## 🧪 Testing and API Workflows
+##  How to Test It
 
-### Standard User Flow
-1. Open the homepage at `http://localhost:3000` and click **Continue with Google** to authorize calendar read access.
-2. Select your country code and enter your **10-digit phone number**.
-3. Click **Save phone number**.
-4. Click **📞 Trigger instant test call** to verify that your Twilio settings are configured correctly and receive a voice call instantly.
+### 1. Test Login & Phone Call
+1. Click **Continue with Google** to authorize your calendar.
+2. Type in your phone number (make sure it's the same one you verified in your Twilio console if you are using a Twilio trial account).
+3. Save it.
+4. Click the **Trigger instant test call** button. Within a few seconds, your phone should ring and play the voice message!
 
-### Simulating the Background Cron Call
-In production, a scheduler triggers the serverless cron endpoint periodically. To manually trigger the scheduler check in development:
-1. Make a `GET` request to:
-   ```
-   http://localhost:3000/api/cron
-   ```
-2. The cron system will:
-   * Fetch users from MongoDB.
-   * Fetch their Google Calendar events for the next 7 days.
-   * Locate any meetings starting **exactly 5 minutes from now** (with a 1-minute buffer window).
-   * Call the saved phone number via Twilio, reading out the meeting details.
-   * Mark the event ID in MongoDB (`remindedEvents`) so the user isn't called again.
+### 2. Testing the Cron Job
+The system checks for upcoming meetings using a serverless cron job route: `/api/cron`. In production, this runs automatically. Locally, you can trigger it manually to test the flow:
+1. Open your Google Calendar and create an event starting **exactly 5 minutes from now**.
+2. Make a `GET` request to `http://localhost:3000/api/cron` (you can just open this URL in your web browser).
+3. The server will scan the database, query Google Calendar for your event, and dial your phone to read the meeting title.
+4. It also saves the event ID in MongoDB so it won't call you twice for the same event.
+
+---
+
+##  Free Hosting Instructions
+
+### Frontend/Backend: Vercel (Hobby Tier)
+1. Push your code to a GitHub repository.
+2. Import the project to Vercel.
+3. Paste all variables from your `.env.local` into Vercel's Environment Variables section (but change `NEXTAUTH_URL` to your production vercel domain).
+4. Vercel reads the `vercel.json` file in this repository and automatically schedules the cron jobs for you on deploy!
+
+### Database: MongoDB Atlas (M0 Free Tier)
+* Host your database with the free shared instance (512MB limit, which is plenty).
+
+### Calls: Twilio Free Trial
+* Use the free signup credits (~$15.00) to test and run your notifications. Remember to keep target phone numbers verified!
