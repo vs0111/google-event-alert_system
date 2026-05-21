@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Google Calendar Twilio Caller Alert System
 
-## Getting Started
+This is a premium, responsive **Next.js 15 (App Router)** application that integrates **Google OAuth**, **Google Calendar**, **MongoDB**, and **Twilio Voice API** to automatically trigger phone call alerts for upcoming calendar events 5 minutes before they begin.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Key Features
+
+* **Google OAuth Integration**: Users log in securely with their Google accounts, allowing the app to read calendar events.
+* **Premium Glassmorphism UI**: High-fidelity dark mode interface with smooth animations, dynamic blur overlays, and fully responsive layouts.
+* **Strict Phone Validation**: Restricts input to exactly 10 digits, and includes a flexible country code selector.
+* **Instant Twilio Test Call**: Includes a diagnostic testing panel that allows users to trigger a phone call instantly to confirm credentials work.
+* **Alert Timeline Monitor**: 
+  * Displays upcoming scheduled events and called history items.
+  * Lists scroll independently and are constrained to show exactly 2 items maximum, ensuring a clean dashboard layout.
+* **Signout Confirmation Modal**: Displays an elegant confirmation prompt before ending the user session.
+* **Background Cron Service**: Includes a serverless cron route (`/api/cron`) that runs on a schedule to fetch calendars, compute offsets, call users, and flag called events in the database to prevent duplicate alerts.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework**: Next.js 15 (App Router)
+* **Language**: TypeScript
+* **Database**: MongoDB (via Mongoose ORM)
+* **Auth**: NextAuth.js (Google Provider with offline access scopes)
+* **Communications**: Twilio SDK (Voice Calls)
+* **Styling**: Tailwind CSS & Vanilla CSS Transitions
+
+---
+
+## 🔑 Environment Setup (`.env.local`)
+
+To run this application locally, create a `.env.local` file in the root directory and add the following keys:
+
+```env
+# Google OAuth Credentials
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# NextAuth Configuration
+NEXTAUTH_SECRET="your-nextauth-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+
+# MongoDB Database Connection
+MONGODB_URI="your-mongodb-connection-string"
+
+# Twilio Communication Credentials
+TWILIO_ACCOUNT_SID="your-twilio-account-sid"
+TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+TWILIO_PHONE_NUMBER="your-twilio-assigned-phone-number"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚙️ Installation & Running
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Install Dependencies
+Make sure you have Node.js (v18+) installed. Run the following command in the project directory:
+```bash
+npm install
+```
 
-## Learn More
+### 2. Run the Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Verify Build for Production
+To test the production compilation, run:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧪 Testing and API Workflows
 
-## Deploy on Vercel
+### Standard User Flow
+1. Open the homepage at `http://localhost:3000` and click **Continue with Google** to authorize calendar read access.
+2. Select your country code and enter your **10-digit phone number**.
+3. Click **Save phone number**.
+4. Click **📞 Trigger instant test call** to verify that your Twilio settings are configured correctly and receive a voice call instantly.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Simulating the Background Cron Call
+In production, a scheduler triggers the serverless cron endpoint periodically. To manually trigger the scheduler check in development:
+1. Make a `GET` request to:
+   ```
+   http://localhost:3000/api/cron
+   ```
+2. The cron system will:
+   * Fetch users from MongoDB.
+   * Fetch their Google Calendar events for the next 7 days.
+   * Locate any meetings starting **exactly 5 minutes from now** (with a 1-minute buffer window).
+   * Call the saved phone number via Twilio, reading out the meeting details.
+   * Mark the event ID in MongoDB (`remindedEvents`) so the user isn't called again.
